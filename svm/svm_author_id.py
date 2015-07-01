@@ -32,7 +32,6 @@ from sklearn.svm import SVC
 features_train = features_train[:len(features_train)/100]
 labels_train = labels_train[:len(labels_train)/100]
 
-
 #training and testing
 for c_parameter in [1]:
     clf = SVC(kernel="rbf", C = c_parameter)
@@ -42,7 +41,6 @@ for c_parameter in [1]:
     t0 = time()
     print clf.score(features_test, labels_test)
     print "testing time: ", round(time()-t0,2), "s"
-
 
 #print result
 prediction = clf.predict(features_test)
