@@ -1,0 +1,27 @@
+install anaconada
+
+python -m pip install -U pip
+conda install pandasql
+conda update scikit-learn
+cibdate yodate nltk
+pip install ggplot
+
+front end nanodegree
+intro to html and CSS
+Responsive web design fundamentals
+Responsive images
+javascript basics
+intro to jquery
+object oriented javascript
+html5 canvas
+website performance optimization
+browser rendering optimization
+intor to ajax
+javascript design pattern
+javascript testing
+
+
+data analyst nanodegree
+go through the class
+watch all office hour
+complete the project

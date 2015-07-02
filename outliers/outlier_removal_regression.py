@@ -28,8 +28,10 @@ ages_train, ages_test, net_worths_train, net_worths_test = train_test_split(ages
 from sklearn.linear_model import LinearRegression
 reg = LinearRegression()
 reg.fit(ages_train,net_worths_train)
+print "score", reg.score(ages_test,net_worths_test)
+print "slope", reg.coef_
+print "intercept", reg.intercept_
 
-print 'graphing'
 try:
     plt.plot(ages, reg.predict(ages), color="blue")
 except NameError:
@@ -66,6 +68,10 @@ if len(cleaned_data) > 0:
     plt.xlabel("ages")
     plt.ylabel("net worths")
     plt.show()
+    print "score", reg.score(ages_test,net_worths_test)
+    print "slope", reg.coef_
+    print "intercept", reg.intercept_
+
 
 
 else:
