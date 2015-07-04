@@ -14,10 +14,23 @@
     enron_data["SKILLING JEFFREY K"]["bonus"] = 5600000
     
 """
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import RandomizedPCA
+import pickle
+import operator
+import sys, os
+from sklearn.preprocessing import Imputer
+from sklearn.preprocessing import MinMaxScaler
+sys.path.append("../tools/")
+from feature_format import featureFormat, targetFeatureSplit
 
 #load files
-import pickle
 enron_data = pickle.load(open("../final_project/final_project_dataset.pkl", "r"))
+
+#remove total
+enron_data.pop('TOTAL')
+
 
 #get familiar with data
 print 'number of people', len(enron_data)
@@ -31,7 +44,6 @@ for person, data in enron_data.items():
     for i,  feature in enumerate(data):
         if enron_data[person][feature] != 'NaN':
             feature_set[feature] += 1
-import operator
 print sorted(feature_set.items(), key=operator.itemgetter(1), reverse=True)
 
 #look at some specific
@@ -46,6 +58,10 @@ print enron_data['LAY KENNETH L']['total_payments']
 print enron_data['FASTOW ANDREW S']['total_payments']
 '''
 
+print enron_data['GLISAN JR BEN F']['from_messages']
+print enron_data['GLISAN JR BEN F']['to_messages']
+print enron_data['GLISAN JR BEN F']['from_poi_to_this_person']
+print enron_data['GLISAN JR BEN F']['from_this_person_to_poi']
 
 salary_count = 0
 email_count = 0
@@ -71,10 +87,66 @@ print 'NaNcount, POIcount', NaNcount, POIcount
 
 
 #play with helper function
-import sys, os
-sys.path.append("../tools/")
-from feature_format import featureFormat, targetFeatureSplit
-result = featureFormat(enron_data,["poi", "salary", "bonus"],remove_NaN=False)
+result = featureFormat(enron_data,["poi", "salary", "exercised_stock_options",  "from_this_person_to_poi", "from_poi_to_this_person"],remove_NaN=False)
 targets, features = targetFeatureSplit(result)
 
+#impute missing NaN
+imp = Imputer(missing_values='NaN', strategy='mean', axis=0, verbose=0, copy=True)
+imputed_features = imp.fit_transform(features)
+
+#min_max_scale
+scaler = MinMaxScaler()
+imputed_features = scaler.fit_transform(imputed_features)
+
+# reduce dimension to 2 and plot
+n_components = 2
+pca = RandomizedPCA(n_components=n_components, whiten=True)
+imputed_features_pca = pca.fit_transform(imputed_features)
+colors = ['b', 'r']
+print range(len(targets))
+for ii in range(len(targets)):
+    #print ii
+    #print type(imputed_features_pca[ii][0])
+    plt.scatter(imputed_features_pca[ii][0], imputed_features_pca[ii][1], color = colors[int(targets[ii].item())])
+
+plt.show()
+
+
+
+#helper function to see if there are any important feature
+def Draw_features(feature_list):
+    result = featureFormat(enron_data,feature_list,remove_NaN=False)
+    targets, features = targetFeatureSplit(result)
+    imp = Imputer(missing_values='NaN', strategy='mean', axis=0, verbose=0, copy=True)
+    features = imp.fit_transform(features)
+    scaler = MinMaxScaler()
+    features = scaler.fit_transform(features)
+    for ii in range(len(targets)):
+        plt.scatter(imputed_features_pca[ii][0], imputed_features_pca[ii][1])
+    for ii in range(len(targets)):
+        if targets[ii] == 1:
+            plt.scatter(imputed_features_pca[ii][0], imputed_features_pca[ii][1], color='r')
+    plt.show()
+
+
+Draw_features(['from_this_person_to_poi', 'from_poi_to_this_person'])
+
+def Draw(pred, features, poi, mark_poi=False, name="image.png", f1_name="feature 1", f2_name="feature 2"):
+    """ some plotting code designed to help you visualize your clusters """
+
+    ### plot each cluster with a different color--add more colors for
+    ### drawing more than 4 clusters
+    colors = ["b", "r", "k", "m", "g"]
+    for ii, pp in enumerate(pred):
+        plt.scatter(features[ii][0], features[ii][1], color = colors[pred[ii]])
+
+    ### if you like, place red stars over points that are POIs (just for funsies)
+    if mark_poi:
+        for ii, pp in enumerate(pred):
+            if poi[ii]:
+                plt.scatter(features[ii][0], features[ii][1], color="r", marker="*")
+    plt.xlabel(f1_name)
+    plt.ylabel(f2_name)
+    plt.savefig(name)
+    plt.show()
 

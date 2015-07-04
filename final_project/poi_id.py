@@ -20,7 +20,15 @@ features_list = ['poi','salary'] # You will need to use more features
 data_dict = pickle.load(open("final_project_dataset.pkl", "r") )
 
 ### Task 2: Remove outliers
+data_dict.pop('TOTAL')
+
+
+print data_dict['from_this_person_to_poi']
 ### Task 3: Create new feature(s)
+'''
+data_dict['from_email_ratio'] = data_dict['from_this_person_to_poi'] / data_dict['from_message']
+data_dict['to_email_ratio'] = data_dict['from_poi_to_this_person'] / data_dict['to_message']
+'''
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
 
