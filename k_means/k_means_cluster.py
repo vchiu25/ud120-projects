@@ -44,14 +44,13 @@ data_dict = pickle.load( open("../final_project/final_project_dataset.pkl", "r")
 ### there's an outlier--remove it! 
 data_dict.pop("TOTAL", 0)
 
-
 ### the input features we want to use 
 ### can be any key in the person-level dictionary (salary, director_fees, etc.) 
 feature_1 = "salary"
 feature_2 = "exercised_stock_options"
 feature_3 = 'total_payments'
 poi  = "poi"
-features_list = [poi, feature_1, feature_2, feature_3]
+features_list = [poi, feature_1, feature_2]#, feature_3]
 data = featureFormat(data_dict, features_list )
 poi, finance_features = targetFeatureSplit( data )
 
@@ -61,30 +60,30 @@ poi, finance_features = targetFeatureSplit( data )
 ### for f1, f2, _ in finance_features:
 ### (as it's currently written, line below assumes 2 features)
 '''
-for f1, f2, _ in finance_features:
+for f1, f2 in finance_features:
     plt.scatter( f1, f2 )
 plt.show()
 '''
 
 #find min and max
-for index, value in data_dict.items():
-    if value[feature_2] != 'NaN':
-        if 
-        if value[feature_2] > max_value:
-            max_value = value[feature_2]
-        if value[feature_2] < min_value:
-            min_value = value[feature_2] 
-print max_value
-print min_value
+#print 'min salary', min(data_dict.values(), key=lambda x:x['salary'])['salary']
+#for salary in ((x['salary'], x) for x in data_dict.values()):
+
+#rescaling
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+scaler = MinMaxScaler()
+scaled_finance_features = scaler.fit_transform(finance_features)
+print scaler.transform([200000.,1000000.])
 
 ### cluster here; create predictions of the cluster labels
 ### for the data and store them to a list called pred
 from sklearn.cluster import KMeans
 clf = KMeans(n_clusters=2)
-pred = clf.fit_predict(finance_features)
+pred = clf.fit_predict(scaled_finance_features)
 
 try:
-    Draw(pred, finance_features, poi, mark_poi=False, name="clusters.pdf", f1_name=feature_1, f2_name=feature_2)
+    Draw(pred, scaled_finance_features, poi, mark_poi=False, name="clusters.pdf", f1_name=feature_1, f2_name=feature_2)
 except NameError:
     print "no predictions object named pred found, no clusters to plot"
 
