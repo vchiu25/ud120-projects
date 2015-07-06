@@ -29,8 +29,8 @@ from feature_format import featureFormat, targetFeatureSplit
 enron_data = pickle.load(open("../final_project/final_project_dataset.pkl", "r"))
 
 #remove total
-enron_data.pop('TOTAL')
 
+enron_data.pop('TOTAL')
 
 #get familiar with data
 print 'number of people', len(enron_data)
@@ -45,7 +45,7 @@ for person, data in enron_data.items():
         if enron_data[person][feature] != 'NaN':
             feature_set[feature] += 1
 print sorted(feature_set.items(), key=operator.itemgetter(1), reverse=True)
-
+print feature_set.keys()
 #look at some specific
 '''
 print enron_data.keys()
@@ -57,11 +57,6 @@ print enron_data['SKILLING JEFFREY K']['total_payments']
 print enron_data['LAY KENNETH L']['total_payments']
 print enron_data['FASTOW ANDREW S']['total_payments']
 '''
-
-print enron_data['GLISAN JR BEN F']['from_messages']
-print enron_data['GLISAN JR BEN F']['to_messages']
-print enron_data['GLISAN JR BEN F']['from_poi_to_this_person']
-print enron_data['GLISAN JR BEN F']['from_this_person_to_poi']
 
 salary_count = 0
 email_count = 0

@@ -4,7 +4,7 @@
 import matplotlib.pyplot as plt
 import pickle
 import sys
-from sklearn.cross_validation import train_test_split
+from sklearn.cross_validation import train_test_split, KFold, StratifiedKFold
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import precision_score, recall_score
 from sklearn.preprocessing import Imputer, MinMaxScaler
@@ -34,27 +34,28 @@ for person, data in enron_data_dict.items():
     else:
         enron_data_dict[person]['to_poi_ratio'] = 'NaN'
     #exercised_stock_ratio
-    if data['total_stock_value'] != 0 and data['total_stock_value'] != 'NaN' and data['exercised_stock_options'] != 'NaN':
-            enron_data_dict[person]['exercised_stock_ratio'] = float(data['exercised_stock_options']) / float(data['total_stock_value'])
-
+    if data['exercised_stock_options'] != 0 and data['exercised_stock_options'] != 'NaN' and data['salary'] != 'NaN':
+            enron_data_dict[person]['exercised_stock_ratio'] = float(data['exercised_stock_options']) / float(data['salary'])
+            if enron_data_dict[person]['exercised_stock_ratio'] == 1:
+                print enron_data_dict[person]
     else:
         enron_data_dict[person]['exercised_stock_ratio'] = 'NaN'
-    print enron_data_dict[person]['exercised_stock_ratio']
+    
 
 # Define list of feature to extract from dictionary  
-features_list = ['poi', 'to_poi_ratio', 'from_poi_ratio', 'salary', 'exercised_stock_ratio']
+features_list = ['poi', 'salary', 'exercised_stock_options', 'from_poi_ratio', 'to_poi_ratio']
 #"salary", "exercised_stock_options",
-
+#'to_poi_ratio', 'from_poi_ratio'
 # Extract list of feature using featureFormat function from tools and the list # of feature defined above.  
-data = featureFormat(enron_data_dict, features_list, remove_NaN=False)
+data = featureFormat(enron_data_dict, features_list, remove_NaN=True)
 labels, features = targetFeatureSplit(data)
 
 imp = Imputer(missing_values='NaN', strategy='mean', axis=0, verbose=0, copy=True)
 imputed_features = imp.fit_transform(features)
-
+'''
 scaler = MinMaxScaler()
 imputed_features = scaler.fit_transform(imputed_features)
-
+'''
 # Cross-Validation split
 features_train, features_test, labels_train, labels_test = train_test_split(imputed_features, labels, test_size=.2, random_state=42) 
 
@@ -66,7 +67,7 @@ print 'recall_score', recall_score(clf.predict(features_test), labels_test)
 
 for ii in range(len(labels)):
     if labels[ii] == 1:
-        plt.scatter(imputed_features[ii][2], imputed_features[ii][3], color='r', marker='*')
+        plt.scatter(imputed_features[ii][0], imputed_features[ii][1], color='r', marker='*')
     else:
-        plt.scatter(imputed_features[ii][2], imputed_features[ii][3], color='b')
+        plt.scatter(imputed_features[ii][0], imputed_features[ii][1], color='b')
 plt.show()
