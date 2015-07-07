@@ -39,7 +39,21 @@ enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r") )
 
 ### Task 2: Remove outliers
 enron_data_dict.pop('TOTAL')
+# Identify outlier
+sorted_feature = {}
+for person in enron_data_dict.keys():
+    for feature in enron_data_dict[person]:
+        if feature not in sorted_feature:
+            sorted_feature[feature] = []
+        if enron_data_dict[person][feature] == 'NaN':
+            pass
+        else:
+            sorted_feature[feature].append((person, enron_data_dict[person][feature]))        
+print sorted_feature[sorted_feature.keys()[0]]
 
+for feature in sorted_feature:
+    print feature, '###\n', sorted(sorted_feature[feature], key=lambda x:x[1])
+    print float([value[1] for value in sorted_feature[feature]])
 ### Task 3: Create new feature(s)
 for person, data in enron_data_dict.items():
     #from poi ratio
@@ -102,22 +116,10 @@ print new_feature_list
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
 ab_clf = AdaBoostClassifier()
-'''
-svr = SVC()
-parameters = {'kernel':('linear', 'rbf'), 'C':[1, 10]}
-clf = GridSearchCV(svr, parameters, scoring='f1', n_jobs=1000, cv=30, verbose=10)
-clf.fit(features, labels)
-print clf.best_estimator_
-'''
-clf = SVC(C=10, cache_size=200, class_weight=None, coef0=0.0, degree=3, gamma=0.0,
-  kernel='linear', max_iter=-1, probability=False, random_state=None,
-  shrinking=True, tol=0.001, verbose=5)
-'''
 print clf.feature_importances_
 for i, val in enumerate(clf.feature_importances_):
     if val >= .04:
         print features_list[i+1]
-'''
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script.
