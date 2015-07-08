@@ -42,7 +42,7 @@ for person in enron_data_dict.keys():
         if feature not in feature_dict:
             feature_dict[feature] = []
         if enron_data_dict[person][feature] == 'NaN':
-            pass
+            continue
         else:
             feature_dict[feature].append((person, enron_data_dict[person][feature])) 
 # Sort by value and convert it to percentile
@@ -50,14 +50,15 @@ percentile_threshold = 10. / len(feature_dict)
 outliers = Set([])
 for feature in feature_dict:
     feature_dict[feature].sort(key=lambda x:x[1])
-    print feature, feature_dict[feature]
+    print feature, feature_dict[feature][-5:]
     feautre_value = [x[1] for x in feature_dict[feature]]
     feature_percentiles = [round(percentileofscore(feautre_value, value, 'rank'), 1) for value in feautre_value]
     for index, feature_percentile in enumerate(feature_percentiles):
         if feature_percentile < percentile_threshold/2 or feature_percentile > 100 - percentile_threshold/2:
             outliers.add(feature_dict[feature][index][0])
 print outliers
-for outlier in outliers:
+#'SHAPIRO RICHARD S''LAVORATO JOHN J''DELAINEY DAVID W','BOWEN JR RAYMOND M''BELDEN TIMOTHY N', 
+for outlier in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'TOTAL']:
     enron_data_dict.pop(outlier)
 
 
@@ -115,7 +116,7 @@ print new_feature_list
 ### you'll need to use Pipelines. For more info:
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
-clf = AdaBoostClassifier()
+clf = AdaBoostClassifier(n_estimators=100)
 clf.fit(features, labels)
 print clf.feature_importances_
 for i, val in enumerate(clf.feature_importances_):
