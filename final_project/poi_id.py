@@ -6,10 +6,11 @@ sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import test_classifier, dump_classifier_and_data
-import matplotlib.pyplot as plt
 import numpy as np
 import operator
 import pickle
+from scipy.stats import percentileofscore
+from sets import Set
 import sys
 from sklearn.cross_validation import train_test_split, KFold, StratifiedKFold
 from sklearn.ensemble import AdaBoostClassifier
@@ -22,38 +23,44 @@ from sklearn.tree import DecisionTreeClassifier
 sys.path.append("../tools/")
 from feature_format import featureFormat, targetFeatureSplit
 
-#outlier cleaning in general
-#user best k to select feature
-#run algorithm
-
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-#features_list = ['poi', 'from_poi_ratio', 'to_poi_ratio', 'exercised_stock_ratio']
-features_list = ['poi', 'salary', 'to_messages', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'total_stock_value', 'shared_receipt_with_poi', 'long_term_incentive', 'exercised_stock_options', 'from_messages', 'other', 'from_poi_to_this_person', 'from_this_person_to_poi', 'deferred_income', 'expenses', 'restricted_stock', 'director_fees', 'from_poi_ratio', 'to_poi_ratio', 'exercised_stock_ratio']
-#features_list = ['poi', 'exercised_stock_options',  'to_poi_ratio', 'from_poi_ratio', 'bonus', 'salary']
-#features_list = ['poi', 'poi']i
+#features_list = ['poi', 'salary', 'to_messages', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'total_stock_value', 'shared_receipt_with_poi', 'long_term_incentive', 'exercised_stock_options', 'from_messages', 'other', 'from_poi_to_this_person', 'from_this_person_to_poi', 'deferred_income', 'expenses', 'restricted_stock', 'director_fees', 'from_poi_ratio', 'to_poi_ratio', 'exercised_stock_ratio']
 features_list = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'shared_receipt_with_poi', 'exercised_stock_options', 'other', 'deferred_income', 'expenses', 'restricted_stock', 'from_poi_ratio', 'to_poi_ratio']
+
 ### Load the dictionary containing the dataset
 enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r") )
 
 ### Task 2: Remove outliers
-enron_data_dict.pop('TOTAL')
-# Identify outlier
-sorted_feature = {}
+# Create dictionary of feature. Key = feature name, content = list of (person, value)
+feature_dict = {}
 for person in enron_data_dict.keys():
     for feature in enron_data_dict[person]:
-        if feature not in sorted_feature:
-            sorted_feature[feature] = []
+        if feature == 'poi' or feature == 'email_address' :
+            continue
+        if feature not in feature_dict:
+            feature_dict[feature] = []
         if enron_data_dict[person][feature] == 'NaN':
             pass
         else:
-            sorted_feature[feature].append((person, enron_data_dict[person][feature]))        
-print sorted_feature[sorted_feature.keys()[0]]
+            feature_dict[feature].append((person, enron_data_dict[person][feature])) 
+# Sort by value and convert it to percentile
+percentile_threshold = 10. / len(feature_dict)
+outliers = Set([])
+for feature in feature_dict:
+    feature_dict[feature].sort(key=lambda x:x[1])
+    print feature, feature_dict[feature]
+    feautre_value = [x[1] for x in feature_dict[feature]]
+    feature_percentiles = [round(percentileofscore(feautre_value, value, 'rank'), 1) for value in feautre_value]
+    for index, feature_percentile in enumerate(feature_percentiles):
+        if feature_percentile < percentile_threshold/2 or feature_percentile > 100 - percentile_threshold/2:
+            outliers.add(feature_dict[feature][index][0])
+print outliers
+for outlier in outliers:
+    enron_data_dict.pop(outlier)
 
-for feature in sorted_feature:
-    print feature, '###\n', sorted(sorted_feature[feature], key=lambda x:x[1])
-    print float([value[1] for value in sorted_feature[feature]])
+
 ### Task 3: Create new feature(s)
 for person, data in enron_data_dict.items():
     #from poi ratio
@@ -66,13 +73,6 @@ for person, data in enron_data_dict.items():
             enron_data_dict[person]['to_poi_ratio'] = float(data['from_this_person_to_poi']) / float(data['from_messages'])
     else:
         enron_data_dict[person]['to_poi_ratio'] = 'NaN'
-    #exercised_stock_ratio
-    if data['exercised_stock_options'] != 0 and data['exercised_stock_options'] != 'NaN' and data['salary'] != 'NaN':
-            enron_data_dict[person]['exercised_stock_ratio'] = float(data['exercised_stock_options']) / float(data['salary'])
-            if enron_data_dict[person]['exercised_stock_ratio'] == 1:
-                print enron_data_dict[person]
-    else:
-        enron_data_dict[person]['exercised_stock_ratio'] = 'NaN'
     
 
 ### Store to my_dataset for easy export below.
@@ -115,7 +115,8 @@ print new_feature_list
 ### you'll need to use Pipelines. For more info:
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
-ab_clf = AdaBoostClassifier()
+clf = AdaBoostClassifier()
+clf.fit(features, labels)
 print clf.feature_importances_
 for i, val in enumerate(clf.feature_importances_):
     if val >= .04:
