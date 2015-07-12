@@ -27,11 +27,10 @@ from feature_format import featureFormat, targetFeatureSplit
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
 features_list = [
-    'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'restricted_stock_deferred', 'total_stock_value',
-    'exercised_stock_options', 'from_messages', 'other', 'from_this_person_to_poi', 'deferred_income', 'from_messagesratio',
-    'bonusratio', 'long_term_incentiveratio', 'expensesratio'
-] 
-
+    'poi', 'salary', 'deferral_payments', 'loan_advances', 'bonus', 'shared_receipt_with_poi', 
+    'long_term_incentive', 'exercised_stock_options', 'from_messages', 'from_this_person_to_poi', 
+     'deferred_income', 'to_messages_ratio', 'salary_ratio'
+]
 ### Load the dictionary containing the dataset
 enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r"))
 
@@ -70,10 +69,17 @@ for outlier in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'TOT
 # Define a list of ratio to create new features. Name of the feature will be the first element + ratio. 
 # Ratio will be defined as first element / second element in the tuple. 
 new_features = [
-    ('to_messages', 'from_poi_to_this_person'), ('from_messages', 'from_this_person_to_poi'), 
-    ('salary', 'exercised_stock_options'), ('salary', 'total_payments'), ('bonus', 'total_payments'), 
-    ('long_term_incentive', 'total_payments'), ('expenses', 'total_payments')
+    ('to_messages', 'from_poi_to_this_person'),
+    ('from_messages', 'from_this_person_to_poi'),
+    ('exercised_stock_options', 'salary'),
+    ('salary', 'total_payments'),
+    ('bonus', 'total_payments'),
+    ('long_term_incentive', 'total_payments'),
+    ('expenses', 'total_payments'),
+    ('total_stock_value', 'exercised_stock_options'),
+    ('restricted_stock', 'total_stock_value')
 ]
+
 
 # Helper function for set_ratio. Check to make sure the two values is not NaN denominator  value is not 0
 def check_NaN(data, feature_tuple):
@@ -84,9 +90,9 @@ def check_NaN(data, feature_tuple):
 # Calculate and set the ratio for the enron_data to create new feature
 def set_ratio(person, data, feature_tuple):
     if check_NaN(data, feature_tuple):
-        enron_data_dict[person][feature_tuple[0] + 'ratio'] = float(data[feature_tuple[0]]) / float(data[feature_tuple[1]])
+        enron_data_dict[person][feature_tuple[0] + '_ratio'] = float(data[feature_tuple[0]]) / float(data[feature_tuple[1]])
     else:
-        enron_data_dict[person][feature_tuple[0] + 'ratio'] = 'NaN'
+        enron_data_dict[person][feature_tuple[0] + '_ratio'] = 'NaN'
 
 # Create new feature
 for person, data in enron_data_dict.items():
@@ -106,31 +112,39 @@ labels, features = targetFeatureSplit(data)
 ### you'll need to use Pipelines. For more info:
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
-clf = SVC()
-clf.fit(features, labels)
+clf = SVC(kernel='linear', C=1000)
+#clf = AdaBoostClassifier() 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script.
 ### Because of the small size of the dataset, the script uses stratified
 ### shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
-tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                     'C': [1, 10, 100, 1000]},
-                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+scaler = MinMaxScaler()
+features = scaler.fit_transform(features)
 
-scores = ['precision', 'recall']
-test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=10, verbose=10), scoring='%s_weighted' % score)
+'''
+tuned_parameters = [{'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 
+                     'C': [1, 10, 100, 1000, 5000, 10000]}]
+
+tuned_parameters = [
+    {'n_estimators': [10, 20, 50, 70, 100, 200, 300]}, 
+    {'learning_rate': [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]}
+]
+'''
+test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=10), verbose=10, scoring='f1')
 test_clf.fit(features, labels)
-    print("Best parameters set found on development set:")
-    print()
-    print(clf.best_params_)
-    print()
-    print("Grid scores on development set:")
-    print()
-    for params, mean_score, scores in clf.grid_scores_:
-        print("%0.3f (+/-%0.03f) for %r"
-              % (mean_score, scores.std() * 2, params))
-    print()
-#test_classifier(clf, my_dataset, features_list)
+print("Best parameters set found on development set:")
+print()
+print(test_clf.best_params_)
+print()
+print("Grid scores on development set:")
+print()
+
+for params, mean_score, scores in test_clf.grid_scores_:
+    print("%0.3f (+/-%0.03f) for %r" % (mean_score, scores.std() * 2, params))
+print()
+
+test_classifier(clf, my_dataset, features_list)
 
 ### Dump your classifier, dataset, and features_list so 
 ### anyone can run/check your results.

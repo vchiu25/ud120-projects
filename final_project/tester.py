@@ -15,6 +15,7 @@ import sys
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.cross_validation import StratifiedShuffleSplit
+from sklearn.preprocessing import MinMaxScaler
 sys.path.append("../tools/")
 from feature_format import featureFormat, targetFeatureSplit
 
@@ -26,13 +27,16 @@ RESULTS_FORMAT_STRING = "\tTotal predictions: {:4d}\tTrue positives: {:4d}\tFals
 def test_classifier(clf, dataset, feature_list, folds = 1000):
     data = featureFormat(dataset, feature_list, sort_keys = True)
     labels, features = targetFeatureSplit(data)
-    print labels, folds
+
+    #temp tester code
+    scaler = MinMaxScaler()
+    features = scaler.fit_transform(features)
     cv = StratifiedShuffleSplit(labels, folds, random_state = 42)
     true_negatives = 0
     false_negatives = 0
     true_positives = 0
     false_positives = 0
-    for train_idx, test_idx in cv: 
+    for train_idx, test_idx in cv:
         features_train = []
         features_test  = []
         labels_train   = []
@@ -45,7 +49,6 @@ def test_classifier(clf, dataset, feature_list, folds = 1000):
             labels_test.append( labels[jj] )
         
         ### fit the classifier using training set, and test on test set
-        print 'testing'
         clf.fit(features_train, labels_train)
         predictions = clf.predict(features_test)
         for prediction, truth in zip(predictions, labels_test):

@@ -44,18 +44,28 @@ def check_NaN(data, feature_tuple):
 
 def set_ratio(person, data, feature_tuple):
     if check_NaN(data, feature_tuple):
-        enron_data_dict[person][feature_tuple[0] + 'ratio'] = float(data[feature_tuple[0]]) / float(data[feature_tuple[1]])
+        enron_data_dict[person][feature_tuple[0] + '_ratio'] = float(data[feature_tuple[0]]) / float(data[feature_tuple[1]])
     else:
-        enron_data_dict[person][feature_tuple[0] + 'ratio'] = 'NaN'
+        enron_data_dict[person][feature_tuple[0] + '_ratio'] = 'NaN'
 
-new_features = [('to_messages', 'from_poi_to_this_person'), ('from_messages', 'from_this_person_to_poi'), ('salary', 'exercised_stock_options'), ('salary', 'total_payments'), ('bonus', 'total_payments'), ('long_term_incentive', 'total_payments'), ('expenses', 'total_payments')]
+new_features = [
+    ('to_messages', 'from_poi_to_this_person'), 
+    ('from_messages', 'from_this_person_to_poi'),
+    ('exercised_stock_options', 'salary'), 
+    ('salary', 'total_payments'), 
+    ('bonus', 'total_payments'),
+    ('long_term_incentive', 'total_payments'), 
+    ('expenses', 'total_payments'),
+    ('total_stock_value', 'exercised_stock_options'), 
+    ('restricted_stock', 'total_stock_value')
+]
 
 ### Task 3: Create new feature(s)
 for person, data in enron_data_dict.items():
     for new_feature in new_features:
         set_ratio(person, data, new_feature)
 
-features_list.extend([new_feature[0] + 'ratio' for new_feature in new_features])
+features_list.extend([new_feature[0] + '_ratio' for new_feature in new_features])
 ### Store to my_dataset for easy export below.
 my_dataset = enron_data_dict
 
@@ -80,10 +90,10 @@ X, y = make_classification(n_samples=1000, n_features=25, n_informative=3,
 # The "accuracy" scoring is proportional to the number of correct
 # classifications
 print 'start fitting'
-svc = SVC(kernel='linear')
+svc = SVC(kernel='linear', C=1000)
 scaler = MinMaxScaler()
 features = scaler.fit_transform(features)
-rfe = RFECV(estimator=svc, step=1, cv=StratifiedShuffleSplit(labels, n_iter=1000), scoring='f1', verbose=10)
+rfe = RFECV(estimator=svc, step=1, cv=StratifiedShuffleSplit(labels, n_iter=500), scoring='f1', verbose=10)
 rfe.fit(features, labels)
 
 print("Optimal number of features : %d" % rfe.n_features_)
