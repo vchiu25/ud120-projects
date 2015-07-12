@@ -14,7 +14,7 @@ from sets import Set
 import sys
 from sklearn.cross_validation import train_test_split, KFold, StratifiedKFold, StratifiedShuffleSplit
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.grid_search import GridSearchCV
+from sklearn.grid_search import GridSearchCV, ParameterGrid
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.feature_selection import f_classif, SelectKBest, SelectPercentile, VarianceThreshold, RFE, RFECV
 from sklearn.preprocessing import Imputer, MinMaxScaler
@@ -113,38 +113,56 @@ labels, features = targetFeatureSplit(data)
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
 clf = SVC(kernel='linear', C=1000)
-#clf = AdaBoostClassifier() 
+clf = DecisionTreeClassifier(criterion='gini', min_samples_split=10, max_features='sqrt', min_samples_leaf=1)
+clf = AdaBoostClassifier() 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script.
 ### Because of the small size of the dataset, the script uses stratified
 ### shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
-scaler = MinMaxScaler()
-features = scaler.fit_transform(features)
+parameter_tuning = True
+if parameter_tuning:
+    scaler = MinMaxScaler()
+    features = scaler.fit_transform(features)
+
+    # Test paramter for decisiontree
+    '''
+    tuned_parameters = [{
+        'criterion': ['gini', 'entropy'], 
+        'max_features': ['auto', 'sqrt', 'log2', None], 
+        'min_samples_split': [2, 5, 10, 20], 
+        'min_samples_leaf': [1, 2, 5, 10]
+    }]
+    
+    # Test paramter for SVC
+    tuned_parameters = [{
+        'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 
+        'C': [1, 10, 100, 1000, 5000, 10000]
+    }]
+    '''
+    # Test parameter for AdaBoost
+    tuned_parameters = [{
+        'n_estimators': [10, 20, 50, 70, 100, 200, 300], 
+        'learning_rate': [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]
+    }]
+
+    test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=100), verbose=10, scoring='f1')
+    test_clf.fit(features, labels)
+    print(test_clf.best_params_)
+    print(test_clf.grid_scores_)
+    print("Best parameters set found on development set:")
+    print()
+    print(test_clf.best_params_)
+    print()
+    print("Grid scores on development set:")
+    print()
 
 '''
-tuned_parameters = [{'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 
-                     'C': [1, 10, 100, 1000, 5000, 10000]}]
-
-tuned_parameters = [
-    {'n_estimators': [10, 20, 50, 70, 100, 200, 300]}, 
-    {'learning_rate': [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]}
-]
-'''
-test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=10), verbose=10, scoring='f1')
-test_clf.fit(features, labels)
-print("Best parameters set found on development set:")
-print()
-print(test_clf.best_params_)
-print()
-print("Grid scores on development set:")
-print()
-
 for params, mean_score, scores in test_clf.grid_scores_:
     print("%0.3f (+/-%0.03f) for %r" % (mean_score, scores.std() * 2, params))
 print()
-
-test_classifier(clf, my_dataset, features_list)
+'''
+#test_classifier(clf, my_dataset, features_list)
 
 ### Dump your classifier, dataset, and features_list so 
 ### anyone can run/check your results.

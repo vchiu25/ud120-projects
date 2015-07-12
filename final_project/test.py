@@ -93,7 +93,7 @@ print 'start fitting'
 svc = SVC(kernel='linear', C=1000)
 scaler = MinMaxScaler()
 features = scaler.fit_transform(features)
-rfe = RFECV(estimator=svc, step=1, cv=StratifiedShuffleSplit(labels, n_iter=500), scoring='f1', verbose=10)
+rfe = RFECV(estimator=DecisionTreeClassifier(), step=1, cv=StratifiedShuffleSplit(labels, n_iter=500), scoring='f1', verbose=10)
 rfe.fit(features, labels)
 
 print("Optimal number of features : %d" % rfe.n_features_)
