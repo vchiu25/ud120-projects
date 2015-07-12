@@ -26,6 +26,7 @@ RESULTS_FORMAT_STRING = "\tTotal predictions: {:4d}\tTrue positives: {:4d}\tFals
 def test_classifier(clf, dataset, feature_list, folds = 1000):
     data = featureFormat(dataset, feature_list, sort_keys = True)
     labels, features = targetFeatureSplit(data)
+    print labels, folds
     cv = StratifiedShuffleSplit(labels, folds, random_state = 42)
     true_negatives = 0
     false_negatives = 0
@@ -44,6 +45,7 @@ def test_classifier(clf, dataset, feature_list, folds = 1000):
             labels_test.append( labels[jj] )
         
         ### fit the classifier using training set, and test on test set
+        print 'testing'
         clf.fit(features_train, labels_train)
         predictions = clf.predict(features_test)
         for prediction, truth in zip(predictions, labels_test):

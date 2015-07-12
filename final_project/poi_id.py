@@ -12,11 +12,11 @@ import pickle
 from scipy.stats import percentileofscore
 from sets import Set
 import sys
-from sklearn.cross_validation import train_test_split, KFold, StratifiedKFold
+from sklearn.cross_validation import train_test_split, KFold, StratifiedKFold, StratifiedShuffleSplit
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import precision_score, recall_score, f1_score
-from sklearn.feature_selection import f_classif, SelectKBest, SelectPercentile
+from sklearn.feature_selection import f_classif, SelectKBest, SelectPercentile, VarianceThreshold, RFE, RFECV
 from sklearn.preprocessing import Imputer, MinMaxScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -26,11 +26,14 @@ from feature_format import featureFormat, targetFeatureSplit
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-#features_list = ['poi', 'salary', 'to_messages', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'total_stock_value', 'shared_receipt_with_poi', 'long_term_incentive', 'exercised_stock_options', 'from_messages', 'other', 'from_poi_to_this_person', 'from_this_person_to_poi', 'deferred_income', 'expenses', 'restricted_stock', 'director_fees', 'from_poi_ratio', 'to_poi_ratio', 'exercised_stock_ratio']
-features_list = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'shared_receipt_with_poi', 'exercised_stock_options', 'other', 'deferred_income', 'expenses', 'restricted_stock', 'from_poi_ratio', 'to_poi_ratio']
+features_list = [
+    'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'restricted_stock_deferred', 'total_stock_value',
+    'exercised_stock_options', 'from_messages', 'other', 'from_this_person_to_poi', 'deferred_income', 'from_messagesratio',
+    'bonusratio', 'long_term_incentiveratio', 'expensesratio'
+] 
 
 ### Load the dictionary containing the dataset
-enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r") )
+enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r"))
 
 ### Task 2: Remove outliers
 # Create dictionary of feature. Key = feature name, content = list of (person, value)
@@ -50,65 +53,52 @@ percentile_threshold = 10. / len(feature_dict)
 outliers = Set([])
 for feature in feature_dict:
     feature_dict[feature].sort(key=lambda x:x[1])
-    print feature, feature_dict[feature][-5:]
     feautre_value = [x[1] for x in feature_dict[feature]]
     feature_percentiles = [round(percentileofscore(feautre_value, value, 'rank'), 1) for value in feautre_value]
     for index, feature_percentile in enumerate(feature_percentiles):
         if feature_percentile < percentile_threshold/2 or feature_percentile > 100 - percentile_threshold/2:
             outliers.add(feature_dict[feature][index][0])
-print outliers
+
+# Manuall review the outlier list and add the outlier to remove to the list below. The outlier that
+# I found but didn't remove are in the comment below
 #'SHAPIRO RICHARD S''LAVORATO JOHN J''DELAINEY DAVID W','BOWEN JR RAYMOND M''BELDEN TIMOTHY N', 
 for outlier in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'TOTAL']:
     enron_data_dict.pop(outlier)
 
 
 ### Task 3: Create new feature(s)
+# Define a list of ratio to create new features. Name of the feature will be the first element + ratio. 
+# Ratio will be defined as first element / second element in the tuple. 
+new_features = [
+    ('to_messages', 'from_poi_to_this_person'), ('from_messages', 'from_this_person_to_poi'), 
+    ('salary', 'exercised_stock_options'), ('salary', 'total_payments'), ('bonus', 'total_payments'), 
+    ('long_term_incentive', 'total_payments'), ('expenses', 'total_payments')
+]
+
+# Helper function for set_ratio. Check to make sure the two values is not NaN denominator  value is not 0
+def check_NaN(data, feature_tuple):
+    if data[feature_tuple[0]] == 'NaN' or data[feature_tuple[1]] == 'NaN' or data[feature_tuple[1]] == 0:
+        return False
+    return True
+
+# Calculate and set the ratio for the enron_data to create new feature
+def set_ratio(person, data, feature_tuple):
+    if check_NaN(data, feature_tuple):
+        enron_data_dict[person][feature_tuple[0] + 'ratio'] = float(data[feature_tuple[0]]) / float(data[feature_tuple[1]])
+    else:
+        enron_data_dict[person][feature_tuple[0] + 'ratio'] = 'NaN'
+
+# Create new feature
 for person, data in enron_data_dict.items():
-    #from poi ratio
-    if data['to_messages'] != 0 and data['to_messages'] != 'NaN' and data["from_poi_to_this_person"] != 'NaN':
-            enron_data_dict[person]['from_poi_ratio'] = float(data['from_poi_to_this_person']) / float(data['to_messages'])
-    else:
-        enron_data_dict[person]['from_poi_ratio'] = 'NaN'
-    #to poi ratio
-    if data['from_messages'] != 0 and data['from_messages'] != 'NaN' and data['from_this_person_to_poi'] != 'NaN':
-            enron_data_dict[person]['to_poi_ratio'] = float(data['from_this_person_to_poi']) / float(data['from_messages'])
-    else:
-        enron_data_dict[person]['to_poi_ratio'] = 'NaN'
-    
+    for new_feature in new_features:
+        set_ratio(person, data, new_feature)
 
 ### Store to my_dataset for easy export below.
 my_dataset = enron_data_dict
 
 ### Extract features and labels from dataset for local testing
-data = featureFormat(my_dataset, features_list, remove_NaN=False, sort_keys = False)
+data = featureFormat(my_dataset, features_list, remove_NaN=True, sort_keys = False)
 labels, features = targetFeatureSplit(data)
-
-imp = Imputer(missing_values='NaN', strategy='mean', copy=True)
-features = imp.fit_transform(features)
-scaler = MinMaxScaler()
-features = scaler.fit_transform(features)
-
-# Create an overfit decision tree and see which element is most powerful
-#print features
-'''
-selector = SelectKBest(f_classif, k=10)
-selector.fit(features, labels)
-feature_pvalues = selector.pvalues_
-#print sorted(i, value = enumerate(feature_pvalues), key=value)
-#:wp
-print feature_pvalues
-for index, x in np.ndenumerate(feature_pvalues):
-    print index[0], x
-for i in sorted(enumerate(feature_pvalues), key=lambda x:x[1], reverse=True):
-    print features_list[i[0]+1], i[1]
-
-index = selector.get_support()
-new_feature_list = []
-for i, value in enumerate(index):
-    if value == True:
-        new_feature_list.append(features_list[i+1])
-print new_feature_list
-'''
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
@@ -116,22 +106,33 @@ print new_feature_list
 ### you'll need to use Pipelines. For more info:
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
-clf = AdaBoostClassifier(n_estimators=100)
+clf = SVC()
 clf.fit(features, labels)
-print clf.feature_importances_
-for i, val in enumerate(clf.feature_importances_):
-    if val >= .04:
-        print features_list[i+1]
-
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script.
 ### Because of the small size of the dataset, the script uses stratified
 ### shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
+tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
+                     'C': [1, 10, 100, 1000]},
+                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
 
-test_classifier(clf, my_dataset, features_list)
+scores = ['precision', 'recall']
+test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=10, verbose=10), scoring='%s_weighted' % score)
+test_clf.fit(features, labels)
+    print("Best parameters set found on development set:")
+    print()
+    print(clf.best_params_)
+    print()
+    print("Grid scores on development set:")
+    print()
+    for params, mean_score, scores in clf.grid_scores_:
+        print("%0.3f (+/-%0.03f) for %r"
+              % (mean_score, scores.std() * 2, params))
+    print()
+#test_classifier(clf, my_dataset, features_list)
 
 ### Dump your classifier, dataset, and features_list so 
 ### anyone can run/check your results.
 
-#dump_classifier_and_data(clf, my_dataset, features_list)
+dump_classifier_and_data(clf, my_dataset, features_list)
