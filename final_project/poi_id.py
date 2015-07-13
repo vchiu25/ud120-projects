@@ -78,7 +78,10 @@ def outliers_identification():
 # Manuall review the outlier list and add the outlier to remove to the list below. The outlier that
 # I found but didn't remove are in the comment below
 #'SHAPIRO RICHARD S''LAVORATO JOHN J''DELAINEY DAVID W','BOWEN JR RAYMOND M''BELDEN TIMOTHY N', 
-for outlier in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'TOTAL']:
+for i in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'BANNANTINE JAMES M']:
+    print enron_data_dict[i]
+
+for outlier in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'BANNANTINE JAMES M', 'TOTAL']:
     enron_data_dict.pop(outlier)
 
 
