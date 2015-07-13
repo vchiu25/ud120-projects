@@ -29,14 +29,15 @@ def test_classifier(clf, dataset, feature_list, folds = 1000):
     labels, features = targetFeatureSplit(data)
 
     #temp tester code
-    scaler = MinMaxScaler()
-    features = scaler.fit_transform(features)
+    #scaler = MinMaxScaler()
+    #features = scaler.fit_transform(features)
     cv = StratifiedShuffleSplit(labels, folds, random_state = 42)
     true_negatives = 0
     false_negatives = 0
     true_positives = 0
     false_positives = 0
     for train_idx, test_idx in cv:
+        print 'testing'
         features_train = []
         features_test  = []
         labels_train   = []
