@@ -28,10 +28,10 @@ from feature_format import featureFormat, targetFeatureSplit
 # Helper function to use RFE to select feacture
 def feature_selection():
     print 'start fitting'
-    svc = SVC(kernel='linear', C=1000)
+    clf = SVC(kernel='linear', C=1000)
     scaler = MinMaxScaler()
     features = scaler.fit_transform(features)
-    rfe = RFECV(estimator=DecisionTreeClassifier(), step=1, cv=StratifiedShuffleSplit(labels, n_iter=500), scoring='f1', verbose=10)
+    rfe = RFECV(estimator=clf, step=1, cv=StratifiedShuffleSplit(labels, n_iter=500), scoring='f1', verbose=10)
     rfe.fit(features, labels)
     print("Optimal number of features : %d" % rfe.n_features_)
     print("Support : %s" % rfe.support_)
@@ -50,7 +50,7 @@ enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r"))
 
 ### Task 2: Remove outliers
 
-# Helper function for outlier identification
+# Helper function to calculate the percentile of each entry for outlier identification
 def outliers_identification():
     # Create dictionary of feature. Key = feature name, content = list of (person, value)
     feature_dict = {}
@@ -75,8 +75,8 @@ def outliers_identification():
             if feature_percentile < percentile_threshold/2 or feature_percentile > 100 - percentile_threshold/2:
                 outliers.add(feature_dict[feature][index][0])
 
-# Manuall review the outlier list and add the outlier to remove to the list below. The outlier that
-# I found but didn't remove are in the comment below
+# Manually reviewed the outlier percentile list and add the outlier to remove to the list below. 
+# The outlier that I found but didn't remove are in the comment below
 #'SHAPIRO RICHARD S''LAVORATO JOHN J''DELAINEY DAVID W','BOWEN JR RAYMOND M''BELDEN TIMOTHY N', 
 for i in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'BANNANTINE JAMES M']:
     print enron_data_dict[i]
