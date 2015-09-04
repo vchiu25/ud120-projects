@@ -78,6 +78,33 @@ def outliers_identification():
 # Manually reviewed the outlier percentile list and add the outlier to remove to the list below. 
 # The outlier that I found but didn't remove are in the comment below
 #'SHAPIRO RICHARD S''LAVORATO JOHN J''DELAINEY DAVID W','BOWEN JR RAYMOND M''BELDEN TIMOTHY N', 
+enron_data_dict['BANNANTINE JAMES M']['total_payments'] = 56301
+enron_data_dict['BANNANTINE JAMES M']['deferred_income'] = 'NaN'
+enron_data_dict['BANNANTINE JAMES M']['other'] = 'NaN' 
+
+enron_data_dict['BHATNAGAR SANJAY']['total_payments'] = 137864
+enron_data_dict['BHATNAGAR SANJAY']['expenses'] = 137864
+enron_data_dict['BHATNAGAR SANJAY']['other'] = 'NaN'
+enron_data_dict['BHATNAGAR SANJAY']['director_fees'] = 'NaN'
+enron_data_dict['BHATNAGAR SANJAY']['exercised_stock_options'] = 15456290
+enron_data_dict['BHATNAGAR SANJAY']['restricted_stock'] = 2604490
+enron_data_dict['BHATNAGAR SANJAY']['restricted_stock_deferred'] = -2604490
+enron_data_dict['BHATNAGAR SANJAY']['total_stock_value'] = 15456290
+
+enron_data_dict['BELFER ROBERT']['total_stock_value'] = 'NaN'
+enron_data_dict['BELFER ROBERT']['restricted_stock_deferred'] = -44093
+enron_data_dict['BELFER ROBERT']['restricted_stock'] = 44093
+enron_data_dict['BELFER ROBERT']['exercised_stock_options'] = 'NaN'
+enron_data_dict['BELFER ROBERT']['total_payments'] = 3285
+enron_data_dict['BELFER ROBERT']['director_fees'] = 102500
+enron_data_dict['BELFER ROBERT']['expenses'] = 3285
+enron_data_dict['BELFER ROBERT']['other'] = 'NaN'
+enron_data_dict['BELFER ROBERT']['deferral_payments'] = 'NaN'
+enron_data_dict['BELFER ROBERT']['deferred_income'] = 'NaN'
+enron_data_dict['BELFER ROBERT']['long_term_incentive'] = -102500
+
+
+
 for i in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'BANNANTINE JAMES M']:
     print enron_data_dict[i]
 
