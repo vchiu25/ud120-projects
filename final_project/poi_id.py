@@ -14,103 +14,77 @@ from sklearn.cross_validation import train_test_split, KFold, StratifiedShuffleS
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.grid_search import GridSearchCV, ParameterGrid
 from sklearn.metrics import precision_score, recall_score, f1_score
-from sklearn.feature_selection import RFECV
+from sklearn.feature_selection import RFECV, SelectKBest, SelectPercentile, f_classif
 from sklearn.preprocessing import Imputer, MinMaxScaler
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from feature_format import featureFormat, targetFeatureSplit
 
+
+
+def features_select(features_list):
+    enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r"))
+    enron_data_dict.pop('TOTAL')
+    my_dataset = enron_data_dict
+    data = featureFormat(my_dataset, features_list, remove_NaN=True, sort_keys = False)
+    labels, features = targetFeatureSplit(data)
+
+    for k in [5,8,10,15]:
+        selector = SelectKBest(k=k)
+        selector.fit_transform(features, labels)
+        print k
+        print selector.pvalues_
+        print selector.get_support()
+        for idx, val in enumerate(selector.get_support()):
+            if val == True:
+                print features_list[1:][idx]
+                print selector.pvalues_[idx]
+        
+
+
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-
-# Helper function to use RFE to select feacture
-def feature_selection():
-    print 'start fitting'
-    clf = SVC(kernel='linear', C=1000)
-    scaler = MinMaxScaler()
-    features = scaler.fit_transform(features)
-    rfe = RFECV(estimator=clf, step=1, cv=StratifiedShuffleSplit(labels, n_iter=500), scoring='f1', verbose=10)
-    rfe.fit(features, labels)
-    print("Optimal number of features : %d" % rfe.n_features_)
-    print("Support : %s" % rfe.support_)
-    print("Ranking : %s" % rfe.ranking_)
-    list = []
-    for idx, val in enumerate(rfe.support_):
-        if val == True:
-            list.append(features_list[idx+1])
-    print list
-
-#Define features_list
-features_list = ['poi', 'salary', 'deferral_payments', 'loan_advances', 'bonus', 'shared_receipt_with_poi', 'long_term_incentive', 'exercised_stock_options', 'from_messages', 'from_this_person_to_poi', 'deferred_income', 'to_messages_ratio', 'salary_ratio']
+features_list = [
+        'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus',
+        'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses',
+        'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock',
+        'director_fees', 'to_messages', 'from_poi_to_this_person', 'from_messages',
+        'from_this_person_to_poi', 'shared_receipt_with_poi']
 
 ### Load the dictionary containing the dataset
 enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r"))
 
 ### Task 2: Remove outliers
+def remove_outliers():
+    enron_data_dict['BANNANTINE JAMES M']['total_payments'] = 56301
+    enron_data_dict['BANNANTINE JAMES M']['deferred_income'] = 'NaN'
+    enron_data_dict['BANNANTINE JAMES M']['other'] = 'NaN' 
 
-# Helper function to calculate the percentile of each entry for outlier identification
-def outliers_identification():
-    # Create dictionary of feature. Key = feature name, content = list of (person, value)
-    feature_dict = {}
-    for person in enron_data_dict.keys():
-        for feature in enron_data_dict[person]:
-            if feature == 'poi' or feature == 'email_address' :
-                continue
-            if feature not in feature_dict:
-                feature_dict[feature] = []
-            if enron_data_dict[person][feature] == 'NaN':
-                continue
-            else:
-                feature_dict[feature].append((person, enron_data_dict[person][feature])) 
-    # Sort by value and convert it to percentile
-    percentile_threshold = 10. / len(feature_dict)
-    outliers = Set([])
-    for feature in feature_dict:
-        feature_dict[feature].sort(key=lambda x:x[1])
-        feautre_value = [x[1] for x in feature_dict[feature]]
-        feature_percentiles = [round(percentileofscore(feautre_value, value, 'rank'), 1) for value in feautre_value]
-        for index, feature_percentile in enumerate(feature_percentiles):
-            if feature_percentile < percentile_threshold/2 or feature_percentile > 100 - percentile_threshold/2:
-                outliers.add(feature_dict[feature][index][0])
+    enron_data_dict['BHATNAGAR SANJAY']['total_payments'] = 137864
+    enron_data_dict['BHATNAGAR SANJAY']['expenses'] = 137864
+    enron_data_dict['BHATNAGAR SANJAY']['other'] = 'NaN'
+    enron_data_dict['BHATNAGAR SANJAY']['director_fees'] = 'NaN'
+    enron_data_dict['BHATNAGAR SANJAY']['exercised_stock_options'] = 15456290
+    enron_data_dict['BHATNAGAR SANJAY']['restricted_stock'] = 2604490
+    enron_data_dict['BHATNAGAR SANJAY']['restricted_stock_deferred'] = -2604490
+    enron_data_dict['BHATNAGAR SANJAY']['total_stock_value'] = 15456290
 
-# Manually reviewed the outlier percentile list and add the outlier to remove to the list below. 
-# The outlier that I found but didn't remove are in the comment below
-#'SHAPIRO RICHARD S''LAVORATO JOHN J''DELAINEY DAVID W','BOWEN JR RAYMOND M''BELDEN TIMOTHY N', 
-enron_data_dict['BANNANTINE JAMES M']['total_payments'] = 56301
-enron_data_dict['BANNANTINE JAMES M']['deferred_income'] = 'NaN'
-enron_data_dict['BANNANTINE JAMES M']['other'] = 'NaN' 
+    enron_data_dict['BELFER ROBERT']['total_stock_value'] = 'NaN'
+    enron_data_dict['BELFER ROBERT']['restricted_stock_deferred'] = -44093
+    enron_data_dict['BELFER ROBERT']['restricted_stock'] = 44093
+    enron_data_dict['BELFER ROBERT']['exercised_stock_options'] = 'NaN'
+    enron_data_dict['BELFER ROBERT']['total_payments'] = 3285
+    enron_data_dict['BELFER ROBERT']['director_fees'] = 102500
+    enron_data_dict['BELFER ROBERT']['expenses'] = 3285
+    enron_data_dict['BELFER ROBERT']['other'] = 'NaN'
+    enron_data_dict['BELFER ROBERT']['deferral_payments'] = 'NaN'
+    enron_data_dict['BELFER ROBERT']['deferred_income'] = 'NaN'
+    enron_data_dict['BELFER ROBERT']['long_term_incentive'] = -102500
 
-enron_data_dict['BHATNAGAR SANJAY']['total_payments'] = 137864
-enron_data_dict['BHATNAGAR SANJAY']['expenses'] = 137864
-enron_data_dict['BHATNAGAR SANJAY']['other'] = 'NaN'
-enron_data_dict['BHATNAGAR SANJAY']['director_fees'] = 'NaN'
-enron_data_dict['BHATNAGAR SANJAY']['exercised_stock_options'] = 15456290
-enron_data_dict['BHATNAGAR SANJAY']['restricted_stock'] = 2604490
-enron_data_dict['BHATNAGAR SANJAY']['restricted_stock_deferred'] = -2604490
-enron_data_dict['BHATNAGAR SANJAY']['total_stock_value'] = 15456290
-
-enron_data_dict['BELFER ROBERT']['total_stock_value'] = 'NaN'
-enron_data_dict['BELFER ROBERT']['restricted_stock_deferred'] = -44093
-enron_data_dict['BELFER ROBERT']['restricted_stock'] = 44093
-enron_data_dict['BELFER ROBERT']['exercised_stock_options'] = 'NaN'
-enron_data_dict['BELFER ROBERT']['total_payments'] = 3285
-enron_data_dict['BELFER ROBERT']['director_fees'] = 102500
-enron_data_dict['BELFER ROBERT']['expenses'] = 3285
-enron_data_dict['BELFER ROBERT']['other'] = 'NaN'
-enron_data_dict['BELFER ROBERT']['deferral_payments'] = 'NaN'
-enron_data_dict['BELFER ROBERT']['deferred_income'] = 'NaN'
-enron_data_dict['BELFER ROBERT']['long_term_incentive'] = -102500
-
-
-
-for i in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'KAMINSKI WINCENTY J', 'BANNANTINE JAMES M']:
-    print enron_data_dict[i]
-
-for outlier in ['BELFER ROBERT', 'BHATNAGAR SANJAY', 'BANNANTINE JAMES M', 'TOTAL']:
-    enron_data_dict.pop(outlier)
-
+    enron_data_dict.pop('TOTAL')
+remove_outliers()
 
 ### Task 3: Create new feature(s)
 
@@ -146,12 +120,23 @@ for person, data in enron_data_dict.items():
     for new_feature in new_features:
         set_ratio(person, data, new_feature)
 
+
 ### Store to my_dataset for easy export below.
 my_dataset = enron_data_dict
 
 ### Extract features and labels from dataset for local testing
+
 data = featureFormat(my_dataset, features_list, remove_NaN=True, sort_keys = False)
 labels, features = targetFeatureSplit(data)
+
+#run kselect
+
+features_select([
+        'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus',
+        'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses',
+        'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock',
+        'director_fees', 'to_messages', 'from_poi_to_this_person', 'from_messages',
+        'from_this_person_to_poi', 'shared_receipt_with_poi', 'to_message_ratio', 'from_messages_ratio'])
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
@@ -172,32 +157,10 @@ clf = Pipeline([('scaler', MinMaxScaler()), ('classifier', svm_clf)])
 ### Because of the small size of the dataset, the script uses stratified
 ### shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
-
 #Helper function for parameter tuning
-def parameter_tuning():
+def parameter_tuning(tuned_parameters):
     scaler = MinMaxScaler()
     features = scaler.fit_transform(features)
-
-    # Test paramter for decisiontree
-    '''
-    tuned_parameters = [{
-        'criterion': ['gini', 'entropy'], 
-        'max_features': ['auto', 'sqrt', 'log2', None], 
-        'min_samples_split': [2, 5, 10, 20], 
-        'min_samples_leaf': [1, 2, 5, 10]
-    }]
-    
-    # Test paramter for SVC
-    tuned_parameters = [{
-        'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 
-        'C': [1, 10, 100, 1000, 5000, 10000]
-    }]
-    '''
-    # Test parameter for AdaBoost
-    tuned_parameters = [{
-        'n_estimators': [10, 20, 50, 70, 100, 200, 300], 
-        'learning_rate': [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]
-    }]
 
     test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=100), verbose=10, scoring='f1')
     test_clf.fit(features, labels)
@@ -221,3 +184,4 @@ test_classifier(clf, my_dataset, features_list)
 ### anyone can run/check your results.
 
 dump_classifier_and_data(clf, my_dataset, features_list)
+
