@@ -41,18 +41,28 @@ def features_select(features_list):
                 print features_list[1:][idx]
                 print selector.pvalues_[idx]
         
-
+'''
+features_select([
+        'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus',
+        'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses',
+        'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock',
+        'director_fees', 'to_messages', 'from_poi_to_this_person', 'from_messages',
+        'from_this_person_to_poi', 'shared_receipt_with_poi'])
+'''
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
+
 features_list = [
         'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus',
         'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses',
         'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock',
         'director_fees', 'to_messages', 'from_poi_to_this_person', 'from_messages',
         'from_this_person_to_poi', 'shared_receipt_with_poi']
-
+'''
+features_list = ['poi', 'bonus', 'deferred_income', 'total_stock_value', 'exercised_stock_options', 'total_payments', 'to_messages_ratio', 'from_messages_ratio']
+'''
 ### Load the dictionary containing the dataset
 enron_data_dict = pickle.load(open("final_project_dataset.pkl", "r"))
 
@@ -129,15 +139,6 @@ my_dataset = enron_data_dict
 data = featureFormat(my_dataset, features_list, remove_NaN=True, sort_keys = False)
 labels, features = targetFeatureSplit(data)
 
-#run kselect
-
-features_select([
-        'poi', 'salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus',
-        'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses',
-        'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock',
-        'director_fees', 'to_messages', 'from_poi_to_this_person', 'from_messages',
-        'from_this_person_to_poi', 'shared_receipt_with_poi', 'to_message_ratio', 'from_messages_ratio'])
-
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
 ### Note that if you want to do PCA or other multi-stage operations,
@@ -146,11 +147,11 @@ features_select([
 
 # Create classifier pipeline with minmaxscaler processing
 # Classifier definition with tuned parameter
-svm_clf = SVC(kernel='linear', C=1000)
+
+svm_clf = SVC(kernel='linear', C=1000, gamma=0)
 dtree_clf = DecisionTreeClassifier(criterion='gini', min_samples_split=10, max_features='sqrt', min_samples_leaf=1)
 adab_clf = AdaBoostClassifier(n_estimators=200, learning_rate=0.5) 
 # Pipeliner defintion
-clf = Pipeline([('scaler', MinMaxScaler()), ('classifier', svm_clf)])
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script.
@@ -160,10 +161,9 @@ clf = Pipeline([('scaler', MinMaxScaler()), ('classifier', svm_clf)])
 #Helper function for parameter tuning
 def parameter_tuning(tuned_parameters):
     scaler = MinMaxScaler()
-    features = scaler.fit_transform(features)
-
-    test_clf = GridSearchCV(clf, tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=100), verbose=10, scoring='f1')
-    test_clf.fit(features, labels)
+    scaled_features = scaler.fit_transform(features)
+    test_clf = GridSearchCV(SVC(), tuned_parameters, cv=StratifiedShuffleSplit(labels, n_iter=100), verbose=10, scoring='f1')
+    test_clf.fit(scaled_features, labels)
     print(test_clf.best_params_)
     print(test_clf.grid_scores_)
     print("Best parameters set found on development set:")
@@ -177,7 +177,13 @@ def parameter_tuning(tuned_parameters):
         print("%0.3f (+/-%0.03f) for %r" % (mean_score, scores.std() * 2, params))
     print()
 
+C_range = np.logspace(-2, 10, 3)
+gamma_range = np.logspace(-9, 3, 3)
+param_grid = dict(gamma=gamma_range, C=C_range)
+#parameter_tuning(param_grid)
 # Function to test classifier
+print 'start testing'
+clf = Pipeline([('scaler', MinMaxScaler()), ('classifier', svm_clf)])
 test_classifier(clf, my_dataset, features_list)
 
 ### Dump your classifier, dataset, and features_list so 
